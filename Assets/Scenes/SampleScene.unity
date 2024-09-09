@@ -321,8 +321,9 @@ GameObject:
   - component: {fileID: 1650714743}
   - component: {fileID: 1650714742}
   - component: {fileID: 1650714741}
+  - component: {fileID: 1650714746}
   m_Layer: 0
-  m_Name: Cube
+  m_Name: escalator block
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -441,6 +442,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1650714746
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1650714740}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8d94f597c445415089ea6b22ca15810, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1699684348
 GameObject:
   m_ObjectHideFlags: 0
