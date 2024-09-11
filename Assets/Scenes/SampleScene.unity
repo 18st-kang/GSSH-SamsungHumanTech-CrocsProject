@@ -519,10 +519,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   massPointPrefab: {fileID: 1233629286952060699, guid: 1cdaa7e727cde4463aa1a5e16db90c5a, type: 3}
   size: 5
-  spacing: 2
-  springForce: 800
-  damper: 10
-  repelFactor: 800
+  spacing: 0.6
+  springForce: 1000
+  damper: 1000
+  repelFactor: 1000
 --- !u!4 &1813894776
 Transform:
   m_ObjectHideFlags: 0
@@ -532,7 +532,7 @@ Transform:
   m_GameObject: {fileID: 1813894774}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 3.004, z: 9.92}
+  m_LocalPosition: {x: 0, y: 0, z: 15.37}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -697,5 +697,5 @@ SceneRoots:
   - {fileID: 1884163079}
   - {fileID: 304108103}
   - {fileID: 752300114}
-  - {fileID: 1813894776}
   - {fileID: 1896049507}
+  - {fileID: 1813894776}

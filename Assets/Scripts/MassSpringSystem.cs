@@ -26,13 +26,6 @@ public class MassSprintingSystem : MonoBehaviour
                     Vector3 position = transform.position + new Vector3(x * spacing, y * spacing, z * spacing);
                     GameObject massPoint = Instantiate(massPointPrefab, position, Quaternion.identity);
 
-                    // Rigidbody 컴포넌트 추가
-                    Rigidbody rb = massPoint.AddComponent<Rigidbody>();
-                    rb.mass = 1.0f;      // 질량 설정
-                    rb.drag = 0.5f;      // 이동 저항 설정
-                    rb.angularDrag = 0.5f; // 회전 저항 설정
-                    rb.freezeRotation = false; // 회전을 고정하지 않음
-
                     massPoints[x, y, z] = massPoint;
 
                     // 각 질량점을 기준으로 스프링 연결
@@ -135,6 +128,7 @@ public class MassSprintingSystem : MonoBehaviour
             Rigidbody rbB = joint.connectedBody;
             Vector3 direction = rbB.position - rbA.position;
             float currentDistance = direction.magnitude;
+            Color forceColor;
 
             if (currentDistance < joint.maxDistance) // 압축된 경우
             {
@@ -145,6 +139,9 @@ public class MassSprintingSystem : MonoBehaviour
                 // 두 질량점에 반대 방향으로 밀어내는 힘 적용
                 rbA.AddForce(-repelForceVector);
                 rbB.AddForce(repelForceVector);
+
+                forceColor = GetForceColor(forceMagnitude); // 색상 결정
+                Debug.DrawLine(rbA.position, rbB.position, forceColor); // 스프링 시각화
             }
             else if (currentDistance > joint.maxDistance) // 늘어난 경우
             {
@@ -155,7 +152,18 @@ public class MassSprintingSystem : MonoBehaviour
                 // 두 질량점에 반대 방향으로 당기는 힘 적용
                 rbA.AddForce(pullForceVector);
                 rbB.AddForce(-pullForceVector);
+
+                forceColor = GetForceColor(forceMagnitude); // 색상 결정
+                Debug.DrawLine(rbA.position, rbB.position, forceColor); // 스프링 시각화
             }
         }
+    }
+
+    // 힘 크기에 따라 색상 반환
+    Color GetForceColor(float forceMagnitude)
+    {
+        // 강도에 따른 색상 변환 (간단한 색상 변환 예)
+        float normalizedForce = Mathf.Clamp01(forceMagnitude / 100.0f); // 100.0f는 강도의 최대값으로 조정할 수 있음
+        return Color.Lerp(Color.green, Color.red, normalizedForce);
     }
 }
