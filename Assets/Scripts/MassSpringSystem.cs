@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class MassSprintSystem : MonoBehaviour
+public class MassSprintingSystem : MonoBehaviour
 {
     public GameObject massPointPrefab; // 질량점으로 사용할 프리팹
     public int size = 3;               // 3D 격자의 크기 (size x size x size)
@@ -25,13 +25,14 @@ public class MassSprintSystem : MonoBehaviour
                 {
                     Vector3 position = transform.position + new Vector3(x * spacing, y * spacing, z * spacing);
                     GameObject massPoint = Instantiate(massPointPrefab, position, Quaternion.identity);
-                    
+
                     // Rigidbody 컴포넌트 추가
-                    Rigidbody rb = massPoint.GetComponent<Rigidbody>();
-                    rb.mass = 1.0f;  // 질량 설정
-                    rb.drag = 0.5f;  // 이동 저항 설정
+                    Rigidbody rb = massPoint.AddComponent<Rigidbody>();
+                    rb.mass = 1.0f;      // 질량 설정
+                    rb.drag = 0.5f;      // 이동 저항 설정
                     rb.angularDrag = 0.5f; // 회전 저항 설정
-                    
+                    rb.freezeRotation = false; // 회전을 고정하지 않음
+
                     massPoints[x, y, z] = massPoint;
 
                     // 각 질량점을 기준으로 스프링 연결
@@ -51,23 +52,26 @@ public class MassSprintSystem : MonoBehaviour
             return;
         }
 
-        // 기본 축 방향 연결
+        // 모서리(기본 축 방향) 연결
         if (x > 0) AddSpringJoint(current, massPoints[x - 1, y, z], spacing); // X 방향
         if (y > 0) AddSpringJoint(current, massPoints[x, y - 1, z], spacing); // Y 방향
         if (z > 0) AddSpringJoint(current, massPoints[x, y, z - 1], spacing); // Z 방향
 
-        // 평면 내 2D 대각선 연결
+        // 평면 내 2D 대각선 연결 (길이: √2 * spacing)
         if (x > 0 && y > 0) AddSpringJoint(current, massPoints[x - 1, y - 1, z], Mathf.Sqrt(2) * spacing); // XY 평면 대각선
         if (x > 0 && z > 0) AddSpringJoint(current, massPoints[x - 1, y, z - 1], Mathf.Sqrt(2) * spacing); // XZ 평면 대각선
         if (y > 0 && z > 0) AddSpringJoint(current, massPoints[x, y - 1, z - 1], Mathf.Sqrt(2) * spacing); // YZ 평면 대각선
 
-        // 3D 대각선 연결
+        // 3D 대각선 연결 (길이: √3 * spacing)
         if (x > 0 && y > 0 && z > 0) AddSpringJoint(current, massPoints[x - 1, y - 1, z - 1], Mathf.Sqrt(3) * spacing); // 3D 대각선
 
-        // 반대 방향 대각선 연결
-        if (x < size - 1 && y > 0 && z > 0) AddSpringJoint(current, massPoints[x + 1, y - 1, z - 1], Mathf.Sqrt(3) * spacing);
-        if (x > 0 && y < size - 1 && z > 0) AddSpringJoint(current, massPoints[x - 1, y + 1, z - 1], Mathf.Sqrt(3) * spacing);
-        if (x > 0 && y > 0 && z < size - 1) AddSpringJoint(current, massPoints[x - 1, y - 1, z + 1], Mathf.Sqrt(3) * spacing);
+        // 반대 방향 3D 대각선 연결 (길이: √3 * spacing), 격자의 끝을 넘어가는 경우는 제외
+        if (x < size - 1 && y > 0 && z > 0 && massPoints[x + 1, y - 1, z - 1] != null) 
+            AddSpringJoint(current, massPoints[x + 1, y - 1, z - 1], Mathf.Sqrt(3) * spacing);
+        if (x > 0 && y < size - 1 && z > 0 && massPoints[x - 1, y + 1, z - 1] != null) 
+            AddSpringJoint(current, massPoints[x - 1, y + 1, z - 1], Mathf.Sqrt(3) * spacing);
+        if (x > 0 && y > 0 && z < size - 1 && massPoints[x - 1, y - 1, z + 1] != null) 
+            AddSpringJoint(current, massPoints[x - 1, y - 1, z + 1], Mathf.Sqrt(3) * spacing);
     }
 
     // 두 질량점 사이에 스프링 조인트를 추가하는 함수
@@ -92,7 +96,7 @@ public class MassSprintSystem : MonoBehaviour
         springJoint.connectedBody = rbB; // 연결된 Rigidbody 설정
         springJoint.spring = springForce;      // 동일한 탄성계수 적용
         springJoint.damper = damper;          // 감쇠 효과
-        springJoint.minDistance = 0.1f;       // 최소 거리
+        springJoint.minDistance = 0.0f;       // 최소 거리
         springJoint.maxDistance = naturalLength; // 스프링의 자연 길이
         springJoint.autoConfigureConnectedAnchor = true; // 자동으로 연결 위치 설정
         springJoint.anchor = Vector3.zero;
@@ -101,21 +105,21 @@ public class MassSprintSystem : MonoBehaviour
 
     void FixedUpdate()
     {
-        // 모든 질량점 쌍에 대해 밀어내는 힘 추가 적용
+        // 모든 질량점 쌍에 대해 양방향 복원력 및 밀어내는 힘 추가 적용
         for (int x = 0; x < size; x++)
         {
             for (int y = 0; y < size; y++)
             {
                 for (int z = 0; z < size; z++)
                 {
-                    ApplyRepulsiveForce(x, y, z);
+                    ApplyBidirectionalForce(x, y, z);
                 }
             }
         }
     }
 
-    // 조인트의 자연 길이보다 짧을 때 밀어내는 힘 적용
-    void ApplyRepulsiveForce(int x, int y, int z)
+    // 조인트의 자연 길이보다 길거나 짧을 때 복원력 및 밀어내는 힘 적용
+    void ApplyBidirectionalForce(int x, int y, int z)
     {
         GameObject current = massPoints[x, y, z];
         if (current == null) return;
@@ -123,7 +127,7 @@ public class MassSprintSystem : MonoBehaviour
         Rigidbody rbA = current.GetComponent<Rigidbody>();
         if (rbA == null) return;
 
-        // 연결된 모든 질량점에 대해 밀어내는 힘 적용
+        // 연결된 모든 질량점에 대해 복원력과 밀어내는 힘 적용
         foreach (SpringJoint joint in current.GetComponents<SpringJoint>())
         {
             if (joint == null || joint.connectedBody == null) continue;
@@ -141,6 +145,16 @@ public class MassSprintSystem : MonoBehaviour
                 // 두 질량점에 반대 방향으로 밀어내는 힘 적용
                 rbA.AddForce(-repelForceVector);
                 rbB.AddForce(repelForceVector);
+            }
+            else if (currentDistance > joint.maxDistance) // 늘어난 경우
+            {
+                direction.Normalize();
+                float forceMagnitude = springForce * (currentDistance - joint.maxDistance); // 당기는 힘 크기
+                Vector3 pullForceVector = forceMagnitude * direction;
+
+                // 두 질량점에 반대 방향으로 당기는 힘 적용
+                rbA.AddForce(pullForceVector);
+                rbB.AddForce(-pullForceVector);
             }
         }
     }
