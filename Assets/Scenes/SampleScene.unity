@@ -499,7 +499,7 @@ GameObject:
   - component: {fileID: 1813894776}
   - component: {fileID: 1813894775}
   m_Layer: 0
-  m_Name: GameObject
+  m_Name: total mass
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -521,7 +521,8 @@ MonoBehaviour:
   size: 10
   spacing: 0.1
   springForce: 50
-  damper: 0
+  damper: 5
+  repelFactor: 20
 --- !u!4 &1813894776
 Transform:
   m_ObjectHideFlags: 0
