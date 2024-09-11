@@ -12,6 +12,7 @@ public class ElasticBody : MonoBehaviour
     private float diagonal2DRestLength;   // 2D 대각선 스프링의 자연 길이
     private float diagonal3DRestLength;   // 3D 대각선 스프링의 자연 길이
 
+    public float fixedUpdateFrequency = 50.0f; // FixedUpdate 빈도, 기본값은 50Hz (0.02초마다 호출)
     public GameObject[,,] massPoints;     // 3D 배열로 질량점 저장
     private Vector3 lastParentPosition;   // 부모 오브젝트의 이전 위치
 
@@ -25,6 +26,8 @@ public class ElasticBody : MonoBehaviour
         CreateMassPoints(); // 질량점 생성
         lastParentPosition = transform.position; // 부모 오브젝트의 초기 위치 저장
         UpdateParentPosition(); // 부모 오브젝트의 위치를 초기화
+
+        UpdateFixedDeltaTime(); // FixedUpdate 주기를 설정
     }
 
     void Update()
@@ -32,6 +35,14 @@ public class ElasticBody : MonoBehaviour
         ApplyForces(); // 각 프레임마다 힘 적용
         UpdateParentPosition(); // 부모 오브젝트의 중심점을 지속적으로 업데이트
         AdjustChildPositions(); // 자식 오브젝트의 위치 보정
+
+        UpdateFixedDeltaTime(); // FixedUpdate 주기를 설정
+    }
+
+    void UpdateFixedDeltaTime()
+    {
+        // fixedUpdateFrequency는 Hz 단위, 이를 Delta Time으로 변환하여 설정
+        Time.fixedDeltaTime = 1.0f / fixedUpdateFrequency;
     }
 
     // 질량점을 생성하는 함수
