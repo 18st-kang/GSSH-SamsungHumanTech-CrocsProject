@@ -1,6 +1,7 @@
 using UnityEngine;
+using System.Collections.Generic;
 
-public class ElasticBody : MonoBehaviour
+public class ElasticBodyPhysics : MonoBehaviour
 {
     public GameObject massPointPrefab; // 질량점으로 사용할 프리팹
     public int size = 10;              // 3D 격자의 크기
@@ -13,36 +14,61 @@ public class ElasticBody : MonoBehaviour
     private float diagonal3DRestLength;   // 3D 대각선 스프링의 자연 길이
 
     public float fixedUpdateFrequency = 50.0f; // FixedUpdate 빈도, 기본값은 50Hz (0.02초마다 호출)
-    public GameObject[,,] massPoints;     // 3D 배열로 질량점 저장
+    private GameObject[,,] massPoints;     // 3D 배열로 질량점 저장
     private Vector3 lastParentPosition;   // 부모 오브젝트의 이전 위치
+
+    // 이미 연결된 질량점 쌍을 추적하기 위한 집합
+    private HashSet<(GameObject, GameObject)> connectedPairs = new HashSet<(GameObject, GameObject)>();
+
+    // ElasticBodyMesh 컴포넌트 참조
+    private ElasticBodyMesh meshGenerator;
 
     void Start()
     {
+        // ElasticBodyMesh 컴포넌트를 가져옵니다.
+        meshGenerator = GetComponent<ElasticBodyMesh>();
+
         // 자연 길이 설정 (spacing을 모서리 길이로 사용)
-        axisRestLength = spacing;                    // 축 방향 자연 길이
-        diagonal2DRestLength = spacing * Mathf.Sqrt(2.0f); // 2D 대각선 자연 길이
-        diagonal3DRestLength = spacing * Mathf.Sqrt(3.0f); // 3D 대각선 자연 길이
+        UpdateRestLengths();
 
         CreateMassPoints(); // 질량점 생성
         lastParentPosition = transform.position; // 부모 오브젝트의 초기 위치 저장
         UpdateParentPosition(); // 부모 오브젝트의 위치를 초기화
 
         UpdateFixedDeltaTime(); // FixedUpdate 주기를 설정
+
+        // 메쉬 생성 코드에 질량점 배열을 넘겨줍니다.
+        if (meshGenerator != null)
+        {
+            meshGenerator.SetMassPoints(massPoints);
+        }
+    }
+
+    void FixedUpdate()
+    {
+        ApplyForces(); // 각 FixedUpdate마다 힘 적용
+        UpdateParentPosition(); // 부모 오브젝트의 중심점을 지속적으로 업데이트
+        AdjustChildPositions(); // 자식 오브젝트의 위치 보정
     }
 
     void Update()
     {
-        ApplyForces(); // 각 프레임마다 힘 적용
-        UpdateParentPosition(); // 부모 오브젝트의 중심점을 지속적으로 업데이트
-        AdjustChildPositions(); // 자식 오브젝트의 위치 보정
-
-        UpdateFixedDeltaTime(); // FixedUpdate 주기를 설정
+        // 실시간으로 spacing 값을 체크하고, 변경 시 자연 길이 업데이트
+        UpdateRestLengths();
     }
 
     void UpdateFixedDeltaTime()
     {
         // fixedUpdateFrequency는 Hz 단위, 이를 Delta Time으로 변환하여 설정
         Time.fixedDeltaTime = 1.0f / fixedUpdateFrequency;
+    }
+
+    // spacing 값을 기반으로 자연 길이들을 업데이트하는 함수
+    void UpdateRestLengths()
+    {
+        axisRestLength = spacing;                    // 축 방향 자연 길이
+        diagonal2DRestLength = spacing * Mathf.Sqrt(2.0f); // 2D 대각선 자연 길이
+        diagonal3DRestLength = spacing * Mathf.Sqrt(3.0f); // 3D 대각선 자연 길이
     }
 
     // 질량점을 생성하는 함수
@@ -60,9 +86,15 @@ public class ElasticBody : MonoBehaviour
                 {
                     Vector3 position = startPos + new Vector3(x * spacing, y * spacing, z * spacing);
                     GameObject massPoint = Instantiate(massPointPrefab, position, Quaternion.identity, transform);
-                    massPoints[x, y, z] = massPoint; // 부모 오브젝트의 자식으로 설정하지 않음
+                    massPoints[x, y, z] = massPoint;
                 }
             }
+        }
+
+        // 질량점 배열이 생성된 후, 메쉬 생성 코드에 배열을 전달합니다.
+        if (meshGenerator != null)
+        {
+            meshGenerator.SetMassPoints(massPoints);
         }
     }
 
@@ -106,6 +138,8 @@ public class ElasticBody : MonoBehaviour
     // 각 질량점에 대해 스프링의 힘을 적용하는 함수
     void ApplyForces()
     {
+        connectedPairs.Clear(); // 새로운 프레임마다 연결 쌍 초기화
+
         for (int x = 0; x < size; x++)
         {
             for (int y = 0; y < size; y++)
@@ -138,9 +172,11 @@ public class ElasticBody : MonoBehaviour
                     ApplySpringForce(currentPoint, x + 1, y + 1, z + 1, diagonal3DRestLength); // 대각선 위 오른쪽 뒤
                     ApplySpringForce(currentPoint, x - 1, y - 1, z - 1, diagonal3DRestLength); // 대각선 아래 왼쪽 앞
                     ApplySpringForce(currentPoint, x + 1, y + 1, z - 1, diagonal3DRestLength); // 대각선 위 오른쪽 앞
-                    ApplySpringForce(currentPoint, x - 1, y - 1, z + 1, diagonal3DRestLength); // 대각선 아래 왼쪽 뒤
-                    ApplySpringForce(currentPoint, x + 1, y - 1, z + 1, diagonal3DRestLength); // 대각선 위 오른쪽 뒤
-                    ApplySpringForce(currentPoint, x - 1, y + 1, z - 1, diagonal3DRestLength); // 대각선 아래 왼쪽 앞
+                    ApplySpringForce(currentPoint, x - 1, y - 1, z + 1, diagonal3DRestLength); // 대각
+                                        // 대각선 위 오른쪽 뒤
+                    ApplySpringForce(currentPoint, x + 1, y - 1, z + 1, diagonal3DRestLength); 
+                    // 대각선 위 왼쪽 앞
+                    ApplySpringForce(currentPoint, x - 1, y + 1, z - 1, diagonal3DRestLength); 
                 }
             }
         }
@@ -159,6 +195,19 @@ public class ElasticBody : MonoBehaviour
         {
             return; // 이웃 점이 없는 경우 무시합니다.
         }
+
+        // 스프링 연결을 위한 질량점 쌍을 생성
+        var pair = (point, neighborPoint);
+        var reversePair = (neighborPoint, point);
+
+        // 이미 처리된 연결 쌍은 무시
+        if (connectedPairs.Contains(pair) || connectedPairs.Contains(reversePair))
+        {
+            return;
+        }
+
+        // 연결 쌍 추가
+        connectedPairs.Add(pair);
 
         Rigidbody pointRb = point.GetComponent<Rigidbody>();
         Rigidbody neighborRb = neighborPoint.GetComponent<Rigidbody>();
@@ -180,3 +229,4 @@ public class ElasticBody : MonoBehaviour
         Debug.DrawRay(point.transform.position, direction, color, Time.deltaTime);
     }
 }
+
