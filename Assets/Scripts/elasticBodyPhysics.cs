@@ -27,14 +27,13 @@ public class ElasticBodyPhysics : MonoBehaviour
     {
         // ElasticBodyMesh 컴포넌트를 가져옵니다.
         meshGenerator = GetComponent<ElasticBodyMesh>();
+        lastParentPosition = transform.position; // 부모 오브젝트의 초기 위치 저장
 
         // 자연 길이 설정 (spacing을 모서리 길이로 사용)
         UpdateRestLengths();
 
         CreateMassPoints(); // 질량점 생성
-        lastParentPosition = transform.position; // 부모 오브젝트의 초기 위치 저장
         UpdateParentPosition(); // 부모 오브젝트의 위치를 초기화
-
         UpdateFixedDeltaTime(); // FixedUpdate 주기를 설정
 
         // 메쉬 생성 코드에 질량점 배열을 넘겨줍니다.
