@@ -10,34 +10,41 @@ public class Escalator : MonoBehaviour
     public float angle = 30.0f;     // 시그모이드 함수의 경사각 (60분법으로 입력)
     public float height = 5.0f;     // 시그모이드 함수의 높이
     public float blockWidth = 1.6f; // 블럭의 z축 폭 (진행방향의 폭)
+    public float wallHeight = 10.0f; // 벽의 높이
     public float wallThickness = 0.1f; // 벽의 두께
+    public float wallMargin = 0.01f;
+
     private float slope;            // 시그모이드 함수의 기울기
     private GameObject[] blocks;    // 블럭들을 저장할 배열
+    private Rigidbody[] blockRigidbodies; // 각 블럭에 대한 Rigidbody 배열
     private float[] xPositions;     // 각 블럭의 x축 좌표값을 저장할 배열
     private float totalLength;      // 전체 에스컬레이터의 길이 (블럭과 간격 포함)
-    private float blockMaxHeight;   // 블럭이 시그모이드에서 차지하는 최대 높이
 
     void Start()
     {
         blocks = new GameObject[blockAmount];
+        blockRigidbodies = new Rigidbody[blockAmount];
         xPositions = new float[blockAmount];
 
         // 각도를 라디안으로 변환하고, 그에 따른 slope 값 계산
         float radianAngle = Mathf.Deg2Rad * angle;
-        slope = (4 * Mathf.Tan(radianAngle)) / height;
+        slope = 4 * Mathf.Tan(radianAngle) / height;
 
         // 전체 길이 계산 (블럭의 크기와 간격 포함)
         totalLength = blockAmount * (blockScale + blockInterval);
-
-        // 블럭의 y축 두께를 시그모이드 함수에 맞추어 설정 (최대 높이로 맞춤)
-        blockMaxHeight = height / blockAmount;
 
         // 블럭을 생성하고 초기 위치 설정
         for (int i = 0; i < blockAmount; i++)
         {
             blocks[i] = Instantiate(blockPrefab, transform);
-            blocks[i].transform.localScale = new Vector3(blockScale, blockMaxHeight, blockWidth);  // y축 크기 설정
+            blocks[i].transform.localScale = new Vector3(blockScale, wallHeight * slope * blockScale / 4, blockWidth);  // z축 크기 설정
             
+            // Rigidbody를 추가하고 속도를 설정
+            Rigidbody rb = blocks[i].AddComponent<Rigidbody>();
+            rb.isKinematic = true; // 충돌하지 않게 설정
+            rb.useGravity = false;
+            blockRigidbodies[i] = rb;
+
             // 초기 x 위치를 블럭 간격과 스케일에 따라 설정
             xPositions[i] = i * (blockScale + blockInterval);
         }
@@ -62,8 +69,9 @@ public class Escalator : MonoBehaviour
             // 시그모이드 함수를 기반으로 y 위치 설정
             float yPosition = Sigmoid(xPositions[i]);
 
-            // 블럭 위치 설정
-            blocks[i].transform.localPosition = new Vector3(xPositions[i] - totalLength / 2, yPosition, 0);
+            // 블럭 위치를 부모 오브젝트의 0,0을 기준으로 설정
+            Vector3 localPosition = new Vector3(xPositions[i] - totalLength / 2, yPosition, 0);
+            blockRigidbodies[i].MovePosition(transform.TransformPoint(localPosition));  // 부모 오브젝트의 상대 좌표에서 절대 좌표로 변환
         }
     }
 
@@ -78,17 +86,14 @@ public class Escalator : MonoBehaviour
     // 벽을 생성하는 함수
     void CreateWalls()
     {
-        // 벽의 높이는 시그모이드 함수에서 블럭이 차지할 수 있는 최대 높이를 포함하도록 설정
-        float wallHeight = height + blockMaxHeight;
-
         // 왼쪽 벽 생성 및 설정 (blockPrefab을 사용)
-        GameObject leftWall = Instantiate(blockPrefab, transform);
-        leftWall.transform.localScale = new Vector3(totalLength, wallHeight, wallThickness); // x축 길이 설정, z축 두께 설정
-        leftWall.transform.localPosition = new Vector3(0, wallHeight / 2, -blockWidth / 2 - wallThickness / 2); // x축 중심에 배치
+        //GameObject leftWall = Instantiate(blockPrefab, transform);
+        //leftWall.transform.localScale = new Vector3(totalLength, wallHeight, wallThickness); // x축 길이 설정, z축 두께 설정
+        //leftWall.transform.localPosition = new Vector3(0, wallHeight / 2, -blockWidth / 2 - wallThickness / 2); // x축 중심에 배치
 
         // 오른쪽 벽 생성 및 설정 (blockPrefab을 사용)
         GameObject rightWall = Instantiate(blockPrefab, transform);
         rightWall.transform.localScale = new Vector3(totalLength, wallHeight, wallThickness); // x축 길이 설정, z축 두께 설정
-        rightWall.transform.localPosition = new Vector3(0, wallHeight / 2, blockWidth / 2 + wallThickness / 2); // x축 중심에 배치
+        rightWall.transform.localPosition = new Vector3(0, wallHeight / 2, blockWidth / 2 + wallThickness / 2 + wallMargin); // x축 중심에 배치
     }
 }
