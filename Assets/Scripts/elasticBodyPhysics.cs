@@ -7,7 +7,6 @@ public class ElasticBodyPhysics : MonoBehaviour
     public int size = 10;              // 3D 격자의 크기
     public float spacing = 1.0f;       // 질량점 사이의 간격 (모서리 스프링의 자연 길이로 사용)
     public float springConstant = 10.0f; // 스프링 상수
-    public float damping = 1.0f;       // 감쇠 계수
 
     private float axisRestLength;         // 축 방향 스프링의 자연 길이
     private float diagonal2DRestLength;   // 2D 대각선 스프링의 자연 길이
@@ -19,12 +18,15 @@ public class ElasticBodyPhysics : MonoBehaviour
 
     // 이미 연결된 질량점 쌍을 추적하기 위한 집합
     private HashSet<(GameObject, GameObject)> connectedPairs = new HashSet<(GameObject, GameObject)>();
+    private CrocsCtrl crocsCtrl; // ElasticBodyPhysics 컴포넌트 참조
 
     // ElasticBodyMesh 컴포넌트 참조
     private ElasticBodyMesh meshGenerator;
 
     void Start()
     {
+        crocsCtrl = FindObjectOfType<CrocsCtrl>();
+
         // ElasticBodyMesh 컴포넌트를 가져옵니다.
         meshGenerator = GetComponent<ElasticBodyMesh>();
         lastParentPosition = transform.position; // 부모 오브젝트의 초기 위치 저장
@@ -54,7 +56,6 @@ public class ElasticBodyPhysics : MonoBehaviour
     {
         // 실시간으로 spacing 값을 체크하고, 변경 시 자연 길이 업데이트
         UpdateRestLengths();
-        Debug.Log(CalculateAverageCompression());
     }
 
     void UpdateFixedDeltaTime()
@@ -76,17 +77,19 @@ public class ElasticBodyPhysics : MonoBehaviour
     {
         massPoints = new GameObject[size, size, size];
 
-        Vector3 startPos = transform.position - new Vector3((size - 1) * spacing / 2, (size - 1) * spacing / 2, (size - 1) * spacing / 2);
+        Vector3 startPos = transform.position - new Vector3(size * spacing / 2, size * spacing / 2, size * spacing / 2);
 
-        for (int x = 0; x < size; x++)
+        for (int x = 0; x < size; x++)  // 1부터가 아닌 0부터 시작
         {
-            for (int y = 0; y < size; y++)
+            for (int y = 0; y < size; y++)  // 1부터가 아닌 0부터 시작
             {
-                for (int z = 0; z < size; z++)
+                for (int z = 0; z < size; z++)  // 1부터가 아닌 0부터 시작
                 {
                     Vector3 position = startPos + new Vector3(x * spacing, y * spacing, z * spacing);
                     GameObject massPoint = Instantiate(massPointPrefab, position, Quaternion.identity, transform);
                     massPoints[x, y, z] = massPoint;
+
+                    Debug.Log($"x: {x}, y: {y}, z: {z}");
                 }
             }
         }
@@ -138,6 +141,7 @@ public class ElasticBodyPhysics : MonoBehaviour
     // 각 질량점에 대해 스프링의 힘을 적용하는 함수
     void ApplyForces()
     {
+        compressionRatios.Clear();
         connectedPairs.Clear(); // 새로운 프레임마다 연결 쌍 초기화
 
         for (int x = 0; x < size; x++)
@@ -156,30 +160,35 @@ public class ElasticBodyPhysics : MonoBehaviour
                     ApplySpringForce(currentPoint, x, y, z + 1, axisRestLength); // 뒤
                     ApplySpringForce(currentPoint, x, y, z - 1, axisRestLength); // 앞
 
-                    // 2D 대각선 방향
-                    ApplySpringForce(currentPoint, x + 1, y + 1, z, diagonal2DRestLength); // 위 오른쪽
-                    ApplySpringForce(currentPoint, x - 1, y - 1, z, diagonal2DRestLength); // 아래 왼쪽
-                    ApplySpringForce(currentPoint, x + 1, y, z + 1, diagonal2DRestLength); // 뒤 오른쪽
-                    ApplySpringForce(currentPoint, x - 1, y, z - 1, diagonal2DRestLength); // 앞 왼쪽
-                    ApplySpringForce(currentPoint, x + 1, y - 1, z, diagonal2DRestLength); // 아래 오른쪽
-                    ApplySpringForce(currentPoint, x - 1, y + 1, z, diagonal2DRestLength); // 위 왼쪽
-                    ApplySpringForce(currentPoint, x, y + 1, z + 1, diagonal2DRestLength); // 위 뒤
-                    ApplySpringForce(currentPoint, x, y - 1, z - 1, diagonal2DRestLength); // 아래 앞
-                    ApplySpringForce(currentPoint, x, y + 1, z - 1, diagonal2DRestLength); // 위 앞
-                    ApplySpringForce(currentPoint, x, y - 1, z + 1, diagonal2DRestLength); // 아래 뒤
+                    ApplySpringForce(currentPoint, x + 1, y + 1, z, diagonal2DRestLength);
+                    ApplySpringForce(currentPoint, x + 1, y - 1, z, diagonal2DRestLength);
+                    ApplySpringForce(currentPoint, x + 1, y, z + 1, diagonal2DRestLength);
+                    ApplySpringForce(currentPoint, x + 1, y, z - 1, diagonal2DRestLength);
 
-                    // 3D 대각선 방향
-                    ApplySpringForce(currentPoint, x + 1, y + 1, z + 1, diagonal3DRestLength); // 대각선 위 오른쪽 뒤
-                    ApplySpringForce(currentPoint, x - 1, y - 1, z - 1, diagonal3DRestLength); // 대각선 아래 왼쪽 앞
-                    ApplySpringForce(currentPoint, x + 1, y + 1, z - 1, diagonal3DRestLength); // 대각선 위 오른쪽 앞
-                    ApplySpringForce(currentPoint, x - 1, y - 1, z + 1, diagonal3DRestLength); // 대각
-                                        // 대각선 위 오른쪽 뒤
-                    ApplySpringForce(currentPoint, x + 1, y - 1, z + 1, diagonal3DRestLength); 
-                    // 대각선 위 왼쪽 앞
-                    ApplySpringForce(currentPoint, x - 1, y + 1, z - 1, diagonal3DRestLength); 
+                    ApplySpringForce(currentPoint, x - 1, y + 1, z, diagonal2DRestLength);
+                    ApplySpringForce(currentPoint, x - 1, y - 1, z, diagonal2DRestLength);
+                    ApplySpringForce(currentPoint, x - 1, y, z + 1, diagonal2DRestLength);
+                    ApplySpringForce(currentPoint, x - 1, y, z - 1, diagonal2DRestLength);
+
+                    ApplySpringForce(currentPoint, x, y + 1, z + 1, diagonal2DRestLength);
+                    ApplySpringForce(currentPoint, x, y + 1, z - 1, diagonal2DRestLength);
+                    ApplySpringForce(currentPoint, x, y - 1, z + 1, diagonal2DRestLength);
+                    ApplySpringForce(currentPoint, x, y - 1, z - 1, diagonal2DRestLength);
+
+                    ApplySpringForce(currentPoint, x + 1, y + 1, z + 1, diagonal3DRestLength);
+                    ApplySpringForce(currentPoint, x + 1, y + 1, z - 1, diagonal3DRestLength);
+                    ApplySpringForce(currentPoint, x + 1, y - 1, z + 1, diagonal3DRestLength);
+                    ApplySpringForce(currentPoint, x + 1, y - 1, z - 1, diagonal3DRestLength);
+                    ApplySpringForce(currentPoint, x - 1, y + 1, z + 1, diagonal3DRestLength);
+                    ApplySpringForce(currentPoint, x - 1, y + 1, z - 1, diagonal3DRestLength);
+                    ApplySpringForce(currentPoint, x - 1, y - 1, z + 1, diagonal3DRestLength);
+                    ApplySpringForce(currentPoint, x - 1, y - 1, z - 1, diagonal3DRestLength);
+
                 }
             }
         }
+
+        CalculateAverageCompression();
     }
 
     // 두 질량점 간 스프링 힘을 적용하는 함수
@@ -224,19 +233,16 @@ public class ElasticBodyPhysics : MonoBehaviour
         pointRb.AddForce(force);
         neighborRb.AddForce(-force);
 
+        compressionRatios.Add(distance / restLength);
+
         // 디버그용 레이 표시: 힘의 크기에 따라 색상 변화
         Color color = Color.Lerp(Color.green, Color.red, Mathf.Abs(forceMagnitude) / 10.0f);
         Debug.DrawRay(point.transform.position, direction, color, Time.deltaTime);
     }
 
     // 모든 스프링의 평균 압축 비율을 계산하는 함수
-    public float CalculateAverageCompression()
+    void CalculateAverageCompression()
     {
-        if (compressionRatios.Count == 0)
-        {
-            return 0.0f; // 스프링이 없으면 0 반환
-        }
-
         float totalCompression = 0.0f;
 
         // 모든 압축 비율의 합을 계산
@@ -245,8 +251,9 @@ public class ElasticBodyPhysics : MonoBehaviour
             totalCompression += ratio;
         }
 
-        // 평균 압축 비율을 반환
-        return totalCompression / compressionRatios.Count;
+        float averageCompression = totalCompression / compressionRatios.Count;
+
+        crocsCtrl.averageCompression = averageCompression;
     }
 }
 

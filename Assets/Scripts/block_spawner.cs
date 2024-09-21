@@ -43,7 +43,7 @@ public class Escalator : MonoBehaviour
             blocks[i].transform.localScale = new Vector3(blockScale, wallHeight * slope * blockScale / 4, blockWidth);  // z축 크기 설정
             
             // Rigidbody를 추가하고 속도를 설정
-            Rigidbody rb = blocks[i].AddComponent<Rigidbody>();
+            Rigidbody rb = blocks[i].GetComponent<Rigidbody>();
             rb.isKinematic = true; // 충돌하지 않게 설정
             rb.useGravity = false;
             blockRigidbodies[i] = rb;
@@ -90,9 +90,9 @@ public class Escalator : MonoBehaviour
     void CreateWalls()
     {
         // 왼쪽 벽 생성 및 설정 (blockPrefab을 사용)
-        //GameObject leftWall = Instantiate(blockPrefab, transform);
-        //leftWall.transform.localScale = new Vector3(totalLength, wallHeight, wallThickness); // x축 길이 설정, z축 두께 설정
-        //leftWall.transform.localPosition = new Vector3(0, wallHeight / 2, -blockWidth / 2 - wallThickness / 2); // x축 중심에 배치
+        GameObject leftWall = Instantiate(blockPrefab, transform);
+        leftWall.transform.localScale = new Vector3(totalLength, wallHeight, wallThickness); // x축 길이 설정, z축 두께 설정
+        leftWall.transform.localPosition = new Vector3(0, wallHeight / 2, -blockWidth / 2 - wallThickness / 2 - wallMargin); // x축 중심에 배치
 
         // 오른쪽 벽 생성 및 설정 (blockPrefab을 사용)
         GameObject rightWall = Instantiate(wallPrefab, transform);
