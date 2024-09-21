@@ -11,7 +11,7 @@ public class ElasticBodyPhysics : MonoBehaviour
     private float axisRestLength;         // 축 방향 스프링의 자연 길이
     private float diagonal2DRestLength;   // 2D 대각선 스프링의 자연 길이
     private float diagonal3DRestLength;   // 3D 대각선 스프링의 자연 길이
-    public List<float> compressionRatios = new List<float>(); // 압축 비율 리스트
+    private List<float> compressionRatios = new List<float>(); // 압축 비율 리스트
     public float fixedUpdateFrequency = 50.0f; // FixedUpdate 빈도, 기본값은 50Hz (0.02초마다 호출)
     private GameObject[,,] massPoints;     // 3D 배열로 질량점 저장
     private Vector3 lastParentPosition;   // 부모 오브젝트의 이전 위치
@@ -48,8 +48,8 @@ public class ElasticBodyPhysics : MonoBehaviour
     void FixedUpdate()
     {
         ApplyForces(); // 각 FixedUpdate마다 힘 적용
-        UpdateParentPosition(); // 부모 오브젝트의 중심점을 지속적으로 업데이트
         AdjustChildPositions(); // 자식 오브젝트의 위치 보정
+        UpdateParentPosition(); // 부모 오브젝트의 중심점을 지속적으로 업데이트
     }
 
     void Update()
@@ -233,11 +233,11 @@ public class ElasticBodyPhysics : MonoBehaviour
         pointRb.AddForce(force);
         neighborRb.AddForce(-force);
 
-        compressionRatios.Add(distance / restLength);
+        compressionRatios.Add(Mathf.Abs(distance - restLength) / restLength);
 
         // 디버그용 레이 표시: 힘의 크기에 따라 색상 변화
-        Color color = Color.Lerp(Color.green, Color.red, Mathf.Abs(forceMagnitude) / 10.0f);
-        Debug.DrawRay(point.transform.position, direction, color, Time.deltaTime);
+        //Color color = Color.green;
+        //Debug.DrawRay(point.transform.position, direction, color, Time.deltaTime);
     }
 
     // 모든 스프링의 평균 압축 비율을 계산하는 함수

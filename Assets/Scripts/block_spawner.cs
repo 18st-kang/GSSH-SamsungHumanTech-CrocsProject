@@ -43,7 +43,7 @@ public class Escalator : MonoBehaviour
             blocks[i].transform.localScale = new Vector3(blockScale, wallHeight * slope * blockScale / 4, blockWidth);  // z축 크기 설정
             
             // Rigidbody를 추가하고 속도를 설정
-            Rigidbody rb = blocks[i].GetComponent<Rigidbody>();
+            Rigidbody rb = blocks[i].AddComponent<Rigidbody>();
             rb.isKinematic = true; // 충돌하지 않게 설정
             rb.useGravity = false;
             blockRigidbodies[i] = rb;
@@ -79,7 +79,7 @@ public class Escalator : MonoBehaviour
     }
 
     // 시그모이드 함수
-    float Sigmoid(float x)
+    public float Sigmoid(float x)
     {
         // 중앙값을 기준으로 x값이 변할 수 있도록 조정
         float center = totalLength / 2;
