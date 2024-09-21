@@ -3,13 +3,16 @@ using UnityEngine;
 public class Escalator : MonoBehaviour
 {
     public GameObject blockPrefab;  // 블럭으로 사용할 3D 큐브 프리팹
+    public GameObject wallPrefab;
     public int blockAmount = 10;    // 블럭의 개수
     public float blockScale = 1.0f; // 각 블럭의 크기
     public float blockInterval = 1.0f;  // 블럭 사이의 간격
+    public float blockWidth = 1.6f; // 블럭의 z축 폭 (진행방향의 폭)
+
     public float speed = 1.0f;      // 에스컬레이터 속도
     public float angle = 30.0f;     // 시그모이드 함수의 경사각 (60분법으로 입력)
     public float height = 5.0f;     // 시그모이드 함수의 높이
-    public float blockWidth = 1.6f; // 블럭의 z축 폭 (진행방향의 폭)
+
     public float wallHeight = 10.0f; // 벽의 높이
     public float wallThickness = 0.1f; // 벽의 두께
     public float wallMargin = 0.01f;
@@ -92,7 +95,7 @@ public class Escalator : MonoBehaviour
         //leftWall.transform.localPosition = new Vector3(0, wallHeight / 2, -blockWidth / 2 - wallThickness / 2); // x축 중심에 배치
 
         // 오른쪽 벽 생성 및 설정 (blockPrefab을 사용)
-        GameObject rightWall = Instantiate(blockPrefab, transform);
+        GameObject rightWall = Instantiate(wallPrefab, transform);
         rightWall.transform.localScale = new Vector3(totalLength, wallHeight, wallThickness); // x축 길이 설정, z축 두께 설정
         rightWall.transform.localPosition = new Vector3(0, wallHeight / 2, blockWidth / 2 + wallThickness / 2 + wallMargin); // x축 중심에 배치
     }
