@@ -88,8 +88,6 @@ public class ElasticBodyPhysics : MonoBehaviour
                     Vector3 position = startPos + new Vector3(x * spacing, y * spacing, z * spacing);
                     GameObject massPoint = Instantiate(massPointPrefab, position, Quaternion.identity, transform);
                     massPoints[x, y, z] = massPoint;
-
-                    Debug.Log($"x: {x}, y: {y}, z: {z}");
                 }
             }
         }
