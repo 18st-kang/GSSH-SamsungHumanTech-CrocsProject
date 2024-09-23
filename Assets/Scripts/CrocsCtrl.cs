@@ -9,6 +9,8 @@ public class CrocsCtrl : MonoBehaviour
 
     private Escalator escalator;
 
+    float time = 0;
+
     public int trying = 0;
     public int fail = 0;
     public int success = 0;
@@ -26,19 +28,35 @@ public class CrocsCtrl : MonoBehaviour
 
     void Update()
     {
-        if (crocs.transform.position.y < 0 || crocs.transform.position.x > 20 || crocs.transform.position.x < -20)
+        time += Time.deltaTime;
+        if(trying <= 3000)
         {
-            fail += 1;
-            Destroy(crocs);
-            SpawnCrocs();
-        }
+            if (crocs.transform.position.y < 0 || crocs.transform.position.x > 20 || crocs.transform.position.x < -20)
+            {
+                fail += 1;
+                Destroy(crocs);
+                SpawnCrocs();
+                time = 0;
+            }
 
-        if (averageCompression >= 0.2 && crocs.transform.position.x > 0 && crocs.transform.position.y > escalator.Sigmoid(crocs.transform.position.x) - 1)
-        {
-            success += 1;
-            SaveSuccessCoordinates(crocs.transform.position.x, crocs.transform.position.y); // 성공한 크록스의 x, y 좌표를 CSV에 저장
-            Destroy(crocs);
-            SpawnCrocs();
+            if (averageCompression >= 0.25 && averageCompression <= 1 && crocs.transform.position.y > escalator.Sigmoid(crocs.transform.position.x) - 1)
+            {
+                if(time < 20)
+                {
+                    fail += 1;
+                    Destroy(crocs);
+                    SpawnCrocs();
+                    time = 0;
+                }
+                else
+                {
+                    success += 1;
+                    SaveSuccessCoordinates(crocs.transform.position.x, crocs.transform.position.y, averageCompression, time); // 성공한 크록스의 x, y 좌표를 CSV에 저장
+                    Destroy(crocs);
+                    SpawnCrocs();
+                    time = 0;
+                }
+            }
         }
     }
 
@@ -58,15 +76,15 @@ public class CrocsCtrl : MonoBehaviour
         if (!File.Exists(filePath))
         {
             // 파일이 없으면 새 파일을 만들고 헤더를 추가
-            File.WriteAllText(filePath, "Success_X_Coordinate,Success_Y_Coordinate\n");
+            File.WriteAllText(filePath, "Success_X_Coordinate,Success_Y_Coordinate,Success_Compression,times\n");
         }
     }
 
 
     // 성공한 크록스의 x, y 좌표를 CSV에 기록하는 함수
-    void SaveSuccessCoordinates(float xCoordinate, float yCoordinate)
+    void SaveSuccessCoordinates(float xCoordinate, float yCoordinate, float averageCompression, float time)
     {
-        string data = xCoordinate.ToString() + "," + yCoordinate.ToString() + "\n";
+        string data = xCoordinate.ToString() + "," + yCoordinate.ToString() + "," + averageCompression.ToString() + "," + time.ToString() + "\n";
         File.AppendAllText(filePath, data);
     }
 }

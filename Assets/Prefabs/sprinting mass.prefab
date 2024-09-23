@@ -49,7 +49,7 @@ MonoBehaviour:
   size: 5
   spacing: 0.06
   springConstant: 15000
-  fixedUpdateFrequency: 800
+  fixedUpdateFrequency: 200
 --- !u!114 &3654605131421933786
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -234,8 +234,8 @@ public class ElasticBodyPhysics : MonoBehaviour
         compressionRatios.Add(Mathf.Abs(distance - restLength) / restLength);
 
         // 디버그용 레이 표시: 힘의 크기에 따라 색상 변화
-        //Color color = Color.green;
-        //Debug.DrawRay(point.transform.position, direction, color, Time.deltaTime);
+        Color color = Color.green;
+        Debug.DrawRay(point.transform.position, direction, color, Time.deltaTime);
     }
 
     // 모든 스프링의 평균 압축 비율을 계산하는 함수
